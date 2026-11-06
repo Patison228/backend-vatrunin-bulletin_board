@@ -15,5 +15,31 @@
     "param": "status", 
     "value": "active", 
     "other": "sold" 
-  }
+  },
+  
+  "text_field": "title",
+  "search": { "param": "q", "field": "title" },
+  "child": {
+    "resource": "responses",
+    "create": { "name": "Иванов", "phone": "+79990001122", "message": "Ещё актуально?" },
+    "parent_field": "ad_id"
+  },
+  "rule": {
+    "description": "Нельзя оставить отклик на проданное объявление",
+    "parent": { "price": 1000 },
+    "setup": [
+      {
+        "method": "PATCH",
+        "path": "/api/ads/{id}",
+        "body": { "status": "sold" }
+      }
+    ],
+    "violate": {
+      "method": "POST",
+      "path": "/api/ads/{id}/responses",
+      "body": { "name": "Петров", "phone": "+79990003344", "message": "Куплю" }
+    },
+    "expect_status": 409
+  },
+  "stats_path": "/api/ads/stats"
 }

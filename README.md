@@ -51,14 +51,19 @@ uvicorn main:app --reload
 
 ```mermaid
 erDiagram
-    parents ||--o{ children : "имеет"
-    parents {
+    ADS ||--o{ RESPONSES : "has many"
+    ADS {
         int id PK
-        varchar title
+        string title
+        float price
+        string status
     }
-    children {
+    RESPONSES {
         int id PK
-        int parent_id FK
+        int ad_id FK
+        string name
+        string phone
+        string message
     }
 ```
 
