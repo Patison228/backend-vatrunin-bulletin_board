@@ -1,44 +1,78 @@
-# Запросы для демонстрации. В VS Code нужно расширение REST Client, в JetBrains IDE всё встроено.
-# Над каждым запросом появляется ссылка «Send Request».
-# items заменить на свой ресурс, тела на поля своей сущности.
-
 @base = http://localhost:8000
 
 ### Сервис жив?
 GET {{base}}/health
 
-### Создать
-POST {{base}}/api/items
+### Создать объявление 1 (Активное)
+POST {{base}}/api/ads
 Content-Type: application/json
 
-{ "title": "Первая запись" }
+{
+    "title": "Продам велосипед",
+    "price": 15000
+}
 
-### Список
-GET {{base}}/api/items
-
-### Получить одну запись
-GET {{base}}/api/items/1
-
-### Изменить
-PATCH {{base}}/api/items/1
+### Создать объявление 2 
+POST {{base}}/api/ads
 Content-Type: application/json
 
-{ "title": "Изменённая запись" }
+{
+    "title": "Продам ноутбук",
+    "price": 50000
+}
 
-### Удалить
-DELETE {{base}}/api/items/1
+### Изменить объявление 2 (сделать проданным)
+PATCH {{base}}/api/ads/2
+Content-Type: application/json
 
-### После удаления должен быть 404
-GET {{base}}/api/items/1
+{ "status": "sold" }
 
-### Сломанный JSON, должен быть 400
-POST {{base}}/api/items
+### Список всех объявлений
+GET {{base}}/api/ads
+
+### Список только активных (пагинация)
+GET {{base}}/api/ads?status=active&limit=5&offset=0
+
+### Оставить отклик на АКТИВНОЕ объявление (id=1) - 201 Created
+POST {{base}}/api/ads/1/responses
+Content-Type: application/json
+
+{
+    "name": "Иван",
+    "phone": "+79991234567",
+    "message": "Еще продаете?"
+}
+
+### Оставить отклик на ПРОДАННОЕ объявление (id=2) - 409 Conflict
+POST {{base}}/api/ads/2/responses
+Content-Type: application/json
+
+{
+    "name": "Мария",
+    "phone": "+79997654321",
+    "message": "Куплю!"
+}
+
+### Получить отклики объявления 1
+GET {{base}}/api/ads/1/responses
+
+### Статистика
+GET {{base}}/api/stats
+
+### Удалить объявление 1
+DELETE {{base}}/api/ads/1
+
+### Проверка 404
+GET {{base}}/api/ads/1
+
+### Сломанный JSON (400)
+POST {{base}}/api/ads
 Content-Type: application/json
 
 { "title":
 
-### Пустое обязательное поле, должен быть 400
-POST {{base}}/api/items
+### Пустой title (400)
+POST {{base}}/api/ads
 Content-Type: application/json
 
-{ "title": "" }
+{ "title": "", "price": 100 }

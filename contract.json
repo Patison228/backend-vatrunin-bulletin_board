@@ -1,10 +1,19 @@
 {
   "base_url": "http://localhost:8000",
-  "resource": "items",
+  "resource": "ads",
   "id_field": "id",
   "missing_id": "999999",
   "list_key": null,
-  "create": { "title": "Первая запись" },
-  "update": { "title": "Изменённая запись" },
-  "required_field": "title"
+  "create": { "title": "Продам гараж", "price": 500000 },
+  "update": { "title": "Продам гараж (торг)" },
+  "required_field": "title",
+  "errors": [
+    { "body": { "title": "", "price": 100 }, "field": "title" },
+    { "body": { "title": "Тест", "price": -5 }, "field": "price" }
+  ],
+  "filter": { 
+    "param": "status", 
+    "value": "active", 
+    "other": "sold" 
+  }
 }
