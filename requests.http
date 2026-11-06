@@ -21,19 +21,19 @@ Content-Type: application/json
     "price": 50000
 }
 
-### Изменить объявление 2 (сделать проданным)
+### сделать проданным 2 обьяв.
 PATCH {{base}}/api/ads/2
 Content-Type: application/json
 
 { "status": "sold" }
 
-### Список всех объявлений
+### Список всех объяв.
 GET {{base}}/api/ads
 
-### Список только активных (пагинация)
+### Список только активных
 GET {{base}}/api/ads?status=active&limit=5&offset=0
 
-### Оставить отклик на АКТИВНОЕ объявление (id=1) - 201 Created
+### Оставить отклик на активное объявление (id=1) - 201
 POST {{base}}/api/ads/1/responses
 Content-Type: application/json
 
@@ -43,7 +43,7 @@ Content-Type: application/json
     "message": "Еще продаете?"
 }
 
-### Оставить отклик на ПРОДАННОЕ объявление (id=2) - 409 Conflict
+### Оставить отклик на проданное объявление (id=2) - 409
 POST {{base}}/api/ads/2/responses
 Content-Type: application/json
 
@@ -71,7 +71,7 @@ Content-Type: application/json
 
 { "title":
 
-### Пустой title (400)
+### пустой title (400)
 POST {{base}}/api/ads
 Content-Type: application/json
 
