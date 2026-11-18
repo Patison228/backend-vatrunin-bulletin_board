@@ -11,11 +11,7 @@
     { "body": { "title": "", "price": 100 }, "field": "title" },
     { "body": { "title": "Тест", "price": -5 }, "field": "price" }
   ],
-  "filter": { 
-    "param": "status", 
-    "value": "active", 
-    "other": "sold" 
-  },
+  "filter": { "param": "status", "value": "active", "other": "sold" },
   
   "text_field": "title",
   "search": { "param": "q", "field": "title" },
@@ -41,5 +37,17 @@
     },
     "expect_status": 409
   },
-  "stats_path": "/api/ads/stats"
+  "stats_path": "/api/ads/stats",
+
+  "auth": {
+    "scheme": "bearer",
+    "register_path": "/auth/register",
+    "login_path": "/auth/login",
+    "me_path": "/auth/me",
+    "login_field": "username",
+    "password_field": "password",
+    "token_field": "access_token",
+    "owner_field": "owner_id",
+    "admin": { "username": "admin", "password": "admin-test-pass" }
+  }
 }
