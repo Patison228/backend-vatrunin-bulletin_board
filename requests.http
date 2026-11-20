@@ -1,41 +1,79 @@
 @base = http://localhost:8000
 
-### Сервис жив?
+### 1. Сервис жив?
 GET {{base}}/health
 
-### Создать объявление 1 (Активное)
+### 2. Регистрация нового пользователя (201)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "user1",
+    "password": "password123"
+}
+
+### 3. Логин (получаем токен) - 200
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "user1",
+    "password": "password123"
+}
+
+### Сохраняем токен из ответа в переменную
+@token = {{login.response.body.access_token}}
+
+### 4. Кто я? (Проверка токена) - 200
+GET {{base}}/auth/me
+Authorization: Bearer {{token}}
+
+### 5. Создать объявление 1 (Активное) - 201
+# @name createAd1
 POST {{base}}/api/ads
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "title": "Продам велосипед",
     "price": 15000
 }
 
-### Создать объявление 2 
+### Сохраняем ID первого объявления
+@ad1_id = {{createAd1.response.body.id}}
+
+### 6. Создать объявление 2 - 201
+# @name createAd2
 POST {{base}}/api/ads
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "title": "Продам ноутбук",
     "price": 50000
 }
 
-### сделать проданным 2 обьяв.
-PATCH {{base}}/api/ads/2
+### Сохраняем ID второго объявления
+@ad2_id = {{createAd2.response.body.id}}
+
+### 7. Сделать проданным 2-е объявление - 200
+PATCH {{base}}/api/ads/{{ad2_id}}
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 { "status": "sold" }
 
-### Список всех объяв.
+### 8. Список всех объявлений (без токена) - 200
 GET {{base}}/api/ads
 
-### Список только активных
+### 9. Список только активных (без токена) - 200
 GET {{base}}/api/ads?status=active&limit=5&offset=0
 
-### Оставить отклик на активное объявление (id=1) - 201
-POST {{base}}/api/ads/1/responses
+### 10. Оставить отклик на активное объявление (id=1) - 201
+POST {{base}}/api/ads/{{ad1_id}}/responses
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "name": "Иван",
@@ -43,9 +81,10 @@ Content-Type: application/json
     "message": "Еще продаете?"
 }
 
-### Оставить отклик на проданное объявление (id=2) - 409
-POST {{base}}/api/ads/2/responses
+### 11. Оставить отклик на проданное объявление (id=2) - 409
+POST {{base}}/api/ads/{{ad2_id}}/responses
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "name": "Мария",
@@ -53,26 +92,29 @@ Content-Type: application/json
     "message": "Куплю!"
 }
 
-### Получить отклики объявления 1
-GET {{base}}/api/ads/1/responses
+### 12. Получить отклики объявления 1 (без токена) - 200
+GET {{base}}/api/ads/{{ad1_id}}/responses
 
-### Статистика
+### 13. Статистика (без токена) - 200
 GET {{base}}/api/stats
 
-### Удалить объявление 1
-DELETE {{base}}/api/ads/1
+### 14. Удалить объявление 1 (только автор) - 204
+DELETE {{base}}/api/ads/{{ad1_id}}
+Authorization: Bearer {{token}}
 
-### Проверка 404
-GET {{base}}/api/ads/1
+### 15. Проверка 404 (без токена)
+GET {{base}}/api/ads/{{ad1_id}}
 
-### Сломанный JSON (400)
+### 16. Сломанный JSON (400) - требуется авторизация
 POST {{base}}/api/ads
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 { "title":
 
-### пустой title (400)
+### 17. Пустой title (400) - требуется авторизация
 POST {{base}}/api/ads
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 { "title": "", "price": 100 }
