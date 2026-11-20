@@ -24,7 +24,7 @@ from schemas import (
 
 load_dotenv()
 
-# ---------- Настройки из окружения ----------
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL не задан в .env")
@@ -36,7 +36,7 @@ JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin-test-pass")
 
-# ---------- БД ----------
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -72,7 +72,6 @@ class Response(Base):
 
 
 class LoginAttempt(Base):
-    """Счётчик неудачных попыток входа (лаба 3, ★★)."""
     __tablename__ = "login_attempts"
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False, index=True)
@@ -80,10 +79,8 @@ class LoginAttempt(Base):
     window_start = Column(DateTime(timezone=True), nullable=False)
     last_attempt = Column(DateTime(timezone=True), nullable=False)
 
-
 Base.metadata.create_all(bind=engine)
 
-# ---------- Пароли и JWT ----------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -110,7 +107,6 @@ def create_access_token(user: User) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-# ---------- Приложение ----------
 app = FastAPI(title="Доска объявлений")
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -128,32 +124,37 @@ def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    """Единственное место проверки доступа (лаба 3)."""
+
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
     token = credentials.credentials
+
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
     user_id = payload.get("sub")
+
     if user_id is None:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
     user = db.query(User).filter(User.id == int(user_id)).first()
+
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
 
 def require_owner_or_admin(obj, user: User):
-    """Проверка, что пользователь — владелец или админ."""
     if user.role == "admin":
         return
+    
     if obj.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
-# ---------- Middleware и обработчик ошибок ----------
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()
@@ -171,7 +172,6 @@ async def validation_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=400, content={"error": err["msg"], "field": field})
 
 
-# ---------- Админ при старте ----------
 @app.on_event("startup")
 def ensure_admin():
     db = SessionLocal()
@@ -190,23 +190,24 @@ def ensure_admin():
         db.close()
 
 
-# ---------- Health ----------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# ---------- Auth ----------
 @app.post("/auth/register", status_code=201, response_model=UserOut)
 def register(data: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == data.username).first()
+
     if existing:
         raise HTTPException(status_code=409, detail="Username already exists")
+    
     user = User(
         username=data.username,
         password_hash=hash_password(data.password),
         role="user",
     )
+
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -218,16 +219,10 @@ def login(data: UserCreate, db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
     window = timedelta(minutes=1)
 
-    # атомарная блокировка строки попыток
-    attempt = (
-        db.query(LoginAttempt)
-        .filter(LoginAttempt.username == data.username)
-        .with_for_update()
-        .first()
-    )
+    attempt = (db.query(LoginAttempt).filter(LoginAttempt.username == data.username).with_for_update().first())
 
     if attempt is not None:
-        # если окно истекло — сбрасываем
+
         if now - attempt.window_start > window:
             attempt.failed_count = 0
             attempt.window_start = now
@@ -252,12 +247,12 @@ def login(data: UserCreate, db: Session = Depends(get_db)):
             attempt.failed_count += 1
             attempt.last_attempt = now
         db.commit()
-        # после 5-й неудачи — 429, иначе 401 без подсказки
+
         if attempt.failed_count >= 5:
             raise HTTPException(status_code=429, detail="Too many login attempts")
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # успех — сбрасываем счётчик
+
     if attempt is not None:
         db.delete(attempt)
         db.commit()
@@ -270,7 +265,6 @@ def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# ---------- Ads ----------
 @app.post("/api/ads", status_code=201, response_model=AdResponse)
 def create_ad(
     data: AdCreate,
@@ -281,7 +275,7 @@ def create_ad(
         title=data.title,
         price=data.price,
         status="active",
-        owner_id=current_user.id,  # ставит сервер
+        owner_id=current_user.id,  
     )
     db.add(ad)
     db.commit()
@@ -340,6 +334,7 @@ def update_ad(
     ad = db.query(Ad).filter(Ad.id == ad_id).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
+    
     require_owner_or_admin(ad, current_user)
 
     update_data = data.model_dump(exclude_unset=True)
@@ -364,7 +359,6 @@ def delete_ad(
     db.commit()
 
 
-# ---------- Responses ----------
 @app.post("/api/ads/{ad_id}/responses", status_code=201, response_model=ResponseOut)
 def create_response(
     ad_id: int,
@@ -405,7 +399,6 @@ def get_responses(ad_id: int, db: Session = Depends(get_db)):
     return db.query(Response).filter(Response.ad_id == ad_id).all()
 
 
-# обратная совместимость: старый путь /api/stats
 @app.get("/api/stats", response_model=list[AdStats])
 def legacy_stats(db: Session = Depends(get_db)):
     return get_stats(db)
